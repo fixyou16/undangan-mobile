@@ -1,0 +1,8 @@
+{
+  "name": "Remix UndanganKu",
+  "description": "Platform SaaS Undangan Digital Pernikahan modern dengan manajemen Tema, Order, Reseller, Editor Undangan, Buku Tamu \u0026 RSVP.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
