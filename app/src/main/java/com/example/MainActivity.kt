@@ -62,12 +62,14 @@ fun MainAppContent(viewModel: MainViewModel) {
         is AppScreen.ResellerDashboard -> "Portal Mitra Reseller"
         is AppScreen.AdminDashboard -> "Super Admin Platform"
         is AppScreen.AiStudio -> "AI Wedding Studio"
+        is AppScreen.WebsitePortal -> "Versi Website & Portal SaaS"
     }
 
     val showBackButton = currentScreen is AppScreen.CustomerCheckout ||
             currentScreen is AppScreen.CustomerInvitationEditor ||
             currentScreen is AppScreen.CustomerGuestManager ||
-            currentScreen is AppScreen.InvitationViewer
+            currentScreen is AppScreen.InvitationViewer ||
+            currentScreen is AppScreen.WebsitePortal
 
     Scaffold(
         modifier = Modifier.fillMaxSize().testTag("main_scaffold"),
@@ -174,6 +176,12 @@ fun MainAppContent(viewModel: MainViewModel) {
                 }
                 is AppScreen.AiStudio -> {
                     AiStudioScreen(viewModel = viewModel)
+                }
+                is AppScreen.WebsitePortal -> {
+                    WebsitePortalScreen(
+                        viewModel = viewModel,
+                        onBack = { viewModel.navigateBack() }
+                    )
                 }
             }
         }

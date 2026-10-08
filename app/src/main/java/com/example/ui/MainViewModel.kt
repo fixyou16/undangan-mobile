@@ -29,6 +29,7 @@ sealed class AppScreen {
     data object ResellerDashboard : AppScreen()
     data object AdminDashboard : AppScreen()
     data object AiStudio : AppScreen()
+    data object WebsitePortal : AppScreen()
 }
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)

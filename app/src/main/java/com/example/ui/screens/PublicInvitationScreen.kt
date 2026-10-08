@@ -5,6 +5,10 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.annotation.SuppressLint
+import android.webkit.WebChromeClient
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
@@ -14,9 +18,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.viewinterop.AndroidView
+import com.example.util.WeddingWebsiteHtmlGenerator
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -90,7 +97,127 @@ fun PublicInvitationScreen(
 
     val isPlayingMusic by MusicPlayerSimulator.isPlaying.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    var isWebsiteMode by remember { mutableStateOf(false) }
+    var isMobileViewport by remember { mutableStateOf(false) }
+    val websiteHtml = remember(invite, guestName) {
+        WeddingWebsiteHtmlGenerator.generateInvitationHtml(invite, guestName)
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Mode Switcher Top Bar (Native Compose vs Website HTML5)
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FilterChip(
+                        selected = !isWebsiteMode,
+                        onClick = { isWebsiteMode = false },
+                        label = { Text("App Mode", fontSize = 11.sp) },
+                        leadingIcon = { Icon(Icons.Default.PhoneAndroid, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primaryContainer),
+                        modifier = Modifier.testTag("chip_app_mode")
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    FilterChip(
+                        selected = isWebsiteMode,
+                        onClick = { isWebsiteMode = true },
+                        label = { Text("Versi Web (HTML5)", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.Language, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primaryContainer),
+                        modifier = Modifier.testTag("chip_web_mode")
+                    )
+                }
+
+                if (isWebsiteMode) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        IconButton(
+                            onClick = { isMobileViewport = !isMobileViewport },
+                            modifier = Modifier.size(32.dp).testTag("btn_toggle_invitation_viewport")
+                        ) {
+                            Icon(
+                                if (isMobileViewport) Icons.Default.Laptop else Icons.Default.Smartphone,
+                                contentDescription = "Viewport",
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("Website HTML", websiteHtml)
+                                clipboard.setPrimaryClip(clip)
+                                viewModel.showSnackbar("Kode HTML Website disalin!")
+                            },
+                            modifier = Modifier.size(32.dp).testTag("btn_copy_invitation_html")
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Salin HTML", modifier = Modifier.size(16.dp))
+                        }
+                        IconButton(
+                            onClick = {
+                                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                    putExtra(Intent.EXTRA_TEXT, "Undangan Pernikahan ${invite.groomName} & ${invite.brideName}: https://undangan.ku/i/${invite.slug}?to=${Uri.encode(guestName)}")
+                                    type = "text/plain"
+                                }
+                                context.startActivity(Intent.createChooser(sendIntent, "Bagikan Link Undangan"))
+                            },
+                            modifier = Modifier.size(32.dp).testTag("btn_share_invitation_link")
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = "Bagikan", modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+            }
+        }
+
+        if (isWebsiteMode) {
+            // Live HTML5 Website View
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+                    .background(Color(0xFF0C080D)),
+                contentAlignment = Alignment.Center
+            ) {
+                val contentModifier = if (isMobileViewport) {
+                    Modifier
+                        .fillMaxHeight()
+                        .width(375.dp)
+                        .padding(vertical = 8.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .border(2.dp, Color(0xFF444444), RoundedCornerShape(20.dp))
+                } else {
+                    Modifier.fillMaxSize()
+                }
+
+                AndroidView(
+                    factory = { ctx ->
+                        WebView(ctx).apply {
+                            settings.javaScriptEnabled = true
+                            settings.domStorageEnabled = true
+                            settings.useWideViewPort = true
+                            settings.loadWithOverviewMode = true
+                            webViewClient = WebViewClient()
+                            webChromeClient = WebChromeClient()
+                            loadDataWithBaseURL("https://undangan.ku/", websiteHtml, "text/html", "UTF-8", null)
+                        }
+                    },
+                    update = { webView ->
+                        webView.loadDataWithBaseURL("https://undangan.ku/", websiteHtml, "text/html", "UTF-8", null)
+                    },
+                    modifier = contentModifier.testTag("invitation_webview")
+                )
+            }
+        } else {
+            // Native App Box View
+            Box(modifier = Modifier.fillMaxSize().weight(1f)) {
         // Main Invitation Content
         LazyColumn(
             modifier = Modifier
@@ -211,7 +338,7 @@ fun PublicInvitationScreen(
         }
 
         // Grand Opening Envelope Modal (Shows until "Buka Undangan" is clicked)
-        AnimatedVisibility(
+        androidx.compose.animation.AnimatedVisibility(
             visible = !isCoverOpened,
             enter = fadeIn(),
             exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
@@ -228,6 +355,8 @@ fun PublicInvitationScreen(
             )
         }
     }
+}
+}
 }
 
 @Composable

@@ -104,6 +104,18 @@ fun AppHeaderBar(
                         }
                     }
 
+                    // Website Portal button
+                    IconButton(
+                        onClick = { viewModel.navigateTo(AppScreen.WebsitePortal) },
+                        modifier = Modifier.testTag("website_portal_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Language,
+                            contentDescription = "Versi Website",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
                     // Role Chip Selector
                     Surface(
                         shape = RoundedCornerShape(16.dp),
@@ -369,6 +381,14 @@ fun AppBottomNavigation(
                 )
             }
         }
+
+        NavigationBarItem(
+            selected = currentScreen is AppScreen.WebsitePortal,
+            onClick = { viewModel.navigateTo(AppScreen.WebsitePortal) },
+            icon = { Icon(Icons.Default.Language, contentDescription = "Website") },
+            label = { Text("Website", fontSize = 11.sp) },
+            modifier = Modifier.testTag("nav_website_portal")
+        )
 
         NavigationBarItem(
             selected = currentScreen is AppScreen.AiStudio,
